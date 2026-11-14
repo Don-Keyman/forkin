@@ -271,4 +271,15 @@ public sealed class MonitorEngineTests : IDisposable
         Assert.Equal(3, seen.Count);
         Assert.Same(e.Current, seen[^1]);
     }
+
+    [Fact]
+    public async Task Edit_applies_the_change_and_reloads_targets()
+    {
+        var e = Engine();
+        await Ticks(e, 1);
+        e.Edit(s => s.Devices.Add(new Device(Guid.NewGuid(), "Shield", "10.0.0.7", ConnectionType.Wired, TargetRole.StreamingDevice)));
+        await Ticks(e, 1);
+        Assert.Contains(e.Current.Targets, t => t.Device.Name == "Shield");
+        Assert.Single(_settings.Devices);
+    }
 }

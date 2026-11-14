@@ -109,6 +109,16 @@ public sealed class MonitorEngine
         lock (_gate) SyncTargets();
     }
 
+    /// <summary>Changes settings safely while the engine is running, then picks up device changes.</summary>
+    public void Edit(Action<AppSettings> change)
+    {
+        lock (_gate)
+        {
+            change(_settings);
+            SyncTargets();
+        }
+    }
+
     /// <summary>Turns a device that appeared with a streaming session into a saved one.</summary>
     public Device PinSessionDevice(Guid id, ConnectionType type)
     {

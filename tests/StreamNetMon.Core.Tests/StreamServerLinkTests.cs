@@ -238,4 +238,15 @@ public class StreamServerLinkTests
         _clock.Advance(31);
         Assert.Equal(ServerKind.None, (await link.PollAsync(default)).Kind);
     }
+
+    [Fact]
+    public async Task Keeps_last_response_bodies_for_diagnostics()
+    {
+        Vibepollo().Json(Stats, "{\"cpu\":1}");
+        var link = Link();
+        await link.PollAsync(default);
+        Assert.Equal("{\"cpu\":1}", link.LastBodies[Stats]);
+        Assert.Contains("sessions", link.LastBodies[Sessions]);
+        Assert.All(link.LastBodies, kv => Assert.DoesNotContain("tok123", kv.Key + kv.Value));
+    }
 }

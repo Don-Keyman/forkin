@@ -48,6 +48,7 @@ public sealed class StreamServerLink : IStreamServer
     private DateTimeOffset? _detectedAt;
     private IReadOnlyDictionary<string, string> _stats = NoStats;
     private DateTimeOffset? _statsAt;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> _lastBodies = new();
 
     public StreamServerLink(HttpMessageHandler handler, IClock clock, Func<ServerMode> mode, Func<int> port, Func<string?> token)
     {
@@ -59,6 +60,9 @@ public sealed class StreamServerLink : IStreamServer
     }
 
     public TimeSpan RequestTimeout { get; init; } = TimeSpan.FromSeconds(2);
+
+    /// <summary>The most recent response body per endpoint, for the diagnostics export. Never holds the token.</summary>
+    public IReadOnlyDictionary<string, string> LastBodies => _lastBodies;
 
     public async Task<ServerStatus> PollAsync(CancellationToken ct)
     {
@@ -158,6 +162,7 @@ public sealed class StreamServerLink : IStreamServer
             if (_token() is { Length: > 0 } token) request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
             using var response = await _http.SendAsync(request, timeout.Token).ConfigureAwait(false);
             var body = await response.Content.ReadAsStringAsync(timeout.Token).ConfigureAwait(false);
+            _lastBodies[path] = body;
             return response.StatusCode switch
             {
                 HttpStatusCode.NotFound => (Outcome.NotFound, body),
