@@ -1,25 +1,20 @@
-# forkin
+# Stream network monitor
 
-A Node.js + TypeScript project.
+A Windows tray app that runs beside a Sunshine-family game-streaming server
+(Vibepollo, Apollo, Sunshine) and shows the quality of the connection from the
+host PC to the devices it streams to inside the house.
 
-## Requirements
+## Build and test
 
-- Node.js 20+ (see `.nvmrc`)
-
-## Getting started
+Requires the .NET 10 SDK.
 
 ```sh
-npm install
-npm run dev        # run src/index.ts with live reload
-npm test           # run tests (Vitest)
-npm run typecheck  # type-check without emitting
-npm run build      # compile to dist/
-npm start          # run the compiled build
+dotnet test                                   # core logic tests (any OS)
+dotnet build src/StreamNetMon.App             # the app (Windows)
+dotnet run --project src/StreamNetMon.App     # run it (Windows)
 ```
 
-## Layout
+On Linux/macOS the app compiles with `-p:EnableWindowsTargeting=true` but only
+runs on Windows.
 
-```
-src/   source code
-test/  tests
-```
+Design: `docs/superpowers/specs/2026-11-14-stream-network-monitor-design.md`
