@@ -71,7 +71,7 @@ public partial class HistoryView : System.Windows.Controls.UserControl
         var from = to - Range;
         var request = ++_request;
         LaterButton.IsEnabled = _end is not null;
-        RangeText.Text = $"{from.ToLocalTime():ddd d MMM HH:mm} – {to.ToLocalTime():ddd d MMM HH:mm}";
+        RangeText.Text = $"{from.ToLocalTime():ddd HH:mm} – {to.ToLocalTime():ddd HH:mm}";
 
         var data = await Task.Run(() =>
         {
