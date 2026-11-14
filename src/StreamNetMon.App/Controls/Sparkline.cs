@@ -42,7 +42,7 @@ public sealed class Sparkline : FrameworkElement
             var age = (int)Math.Round((end - s.At).TotalSeconds);
             if (age is < 0 or >= slots) continue;
             var x = (slots - 1 - age) * slot;
-            var height = s.RttMs is { } rtt ? Math.Max(1.5, rtt / top * ActualHeight) : ActualHeight;
+            var height = s.RttMs is { } rtt ? Math.Max(3, rtt / top * ActualHeight) : ActualHeight;
             dc.DrawRectangle(s.RttMs is null ? Palette.Problem : Palette.Accent, null,
                 new Rect(x, ActualHeight - height, Math.Max(1, slot - 0.5), height));
         }

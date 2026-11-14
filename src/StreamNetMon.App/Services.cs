@@ -10,7 +10,7 @@ namespace StreamNetMon.App;
 public sealed class Services : IDisposable
 {
     private readonly CancellationTokenSource _stop = new();
-    private readonly HttpClientHandler _handler;
+    private readonly SocketsHttpHandler _handler;
     private Task? _loop;
     private string? _token;
 
@@ -28,13 +28,19 @@ public sealed class Services : IDisposable
         Network = new WindowsNetwork();
         History = new HistoryStore(Path.Combine(DataDirectory, "history.db"));
 
-        _handler = new HttpClientHandler
+        _handler = new SocketsHttpHandler
         {
-            // The server's certificate is self-signed. Accept that for this PC only.
-            ServerCertificateCustomValidationCallback = (request, _, _, errors) =>
-                errors == SslPolicyErrors.None || request.RequestUri is { Host: "localhost" },
+            // Only ever this PC, and without the two-second wait on the loopback address
+            // the server is not listening on.
+            ConnectCallback = (context, ct) => LoopbackConnector.ConnectAsync(context.DnsEndPoint, ct),
+            SslOptions = new SslClientAuthenticationOptions
+            {
+                // The server's certificate is self-signed. The connection can only reach this PC, so accept it.
+                RemoteCertificateValidationCallback = (_, _, _, _) => true,
+            },
             UseProxy = false,
             AllowAutoRedirect = false,
+            PooledConnectionLifetime = TimeSpan.FromMinutes(5),
         };
         Server = new StreamServerLink(_handler, Clock, () => Settings.ServerMode, () => Settings.ServerPort, () => _token);
         Engine = new MonitorEngine(Settings, new IcmpPinger(), Network, Server, Network, History, Clock);
