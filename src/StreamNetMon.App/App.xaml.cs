@@ -8,6 +8,7 @@ public partial class App : System.Windows.Application
     private Services? _services;
     private Tray? _tray;
     private MainWindow? _window;
+    private readonly AlertGate _alerts = new();
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -56,8 +57,10 @@ public partial class App : System.Windows.Application
             if (_services is null || _window is null) return;
             _services.Live.Collect(snapshot);
             _tray?.Show(snapshot.Verdict);
+            if (_alerts.ShouldNotify(snapshot.Verdict, snapshot.At) && _services.Settings.Notifications)
+                _tray?.Notify(snapshot.Verdict.Message);
             if (_window.IsVisible && _window.WindowState != WindowState.Minimized)
-                _services.Live.Show(snapshot, _services.Settings.Thresholds);
+                _window.Show(snapshot);
         });
     }
 
@@ -67,7 +70,7 @@ public partial class App : System.Windows.Application
         _window.Show();
         if (_window.WindowState == WindowState.Minimized) _window.WindowState = WindowState.Normal;
         _window.Activate();
-        _services.Live.Show(_services.Engine.Current, _services.Settings.Thresholds);
+        _window.Show(_services.Engine.Current);
     }
 
     private void Quit()

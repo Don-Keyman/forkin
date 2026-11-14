@@ -8,5 +8,14 @@
         <TabItem Header="Live">
             <v:LiveView x:Name="Live" />
         </TabItem>
+        <TabItem Header="History">
+            <v:HistoryView x:Name="History" />
+        </TabItem>
+        <TabItem Header="Devices">
+            <v:DevicesView x:Name="Devices" />
+        </TabItem>
+        <TabItem Header="Settings">
+            <v:SettingsView x:Name="SettingsTab" />
+        </TabItem>
     </TabControl>
 </Window>

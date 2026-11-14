@@ -1,0 +1,87 @@
+<UserControl x:Class="StreamNetMon.App.Views.DevicesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Margin="12">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="16" />
+            <ColumnDefinition Width="280" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="2*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="3*" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Saved devices" FontWeight="SemiBold" Margin="0,0,0,4" />
+        <ListBox x:Name="Saved" Grid.Row="1" SelectionChanged="Saved_SelectionChanged">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding Name}" Width="170" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding Host}" Width="130" Foreground="#5F666D" />
+                        <TextBlock Text="{Binding Kind}" Foreground="#5F666D" />
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <TextBlock x:Name="StreamingTitle" Grid.Row="2" Text="Streaming now, not saved" FontWeight="SemiBold" Margin="0,12,0,4" />
+        <ItemsControl x:Name="Streaming" Grid.Row="3">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Orientation="Horizontal" Margin="0,2">
+                        <TextBlock Text="{Binding Name}" Width="170" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding Host}" Width="130" VerticalAlignment="Center" Foreground="#5F666D" />
+                        <Button Content="Keep as wired" Tag="{Binding Id}" Click="KeepWired_Click" Padding="8,2" Margin="0,0,6,0" />
+                        <Button Content="Keep as Wi-Fi" Tag="{Binding Id}" Click="KeepWifi_Click" Padding="8,2" />
+                    </StackPanel>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <DockPanel Grid.Row="4" Margin="0,12,0,4">
+            <Button DockPanel.Dock="Right" Content="Refresh" Click="Refresh_Click" Padding="8,2" />
+            <TextBlock Text="Seen on your network (click one to fill in the form)" FontWeight="SemiBold" VerticalAlignment="Center" />
+        </DockPanel>
+        <ListBox x:Name="Found" Grid.Row="5" SelectionChanged="Found_SelectionChanged">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding Address}" Width="130" />
+                        <TextBlock Text="{Binding Name}" Foreground="#5F666D" />
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <StackPanel Grid.Column="2" Grid.RowSpan="6">
+            <TextBlock x:Name="FormTitle" Text="Add a device" FontWeight="SemiBold" Margin="0,0,0,8" />
+            <TextBlock Text="Name" Foreground="#5F666D" />
+            <ComboBox x:Name="NameBox" IsEditable="True" Margin="0,2,0,8" />
+            <TextBlock Text="Address (IP or host name)" Foreground="#5F666D" />
+            <TextBox x:Name="HostBox" Margin="0,2,0,8" />
+            <TextBlock Text="Connection" Foreground="#5F666D" />
+            <ComboBox x:Name="TypeBox" Margin="0,2,0,8" SelectedIndex="0">
+                <ComboBoxItem Content="Wired" />
+                <ComboBoxItem Content="Wi-Fi" />
+            </ComboBox>
+            <TextBlock Text="Kind" Foreground="#5F666D" />
+            <ComboBox x:Name="RoleBox" Margin="0,2,0,12" SelectedIndex="0">
+                <ComboBoxItem Content="Streaming device" />
+                <ComboBoxItem Content="Router or access point" />
+            </ComboBox>
+            <StackPanel Orientation="Horizontal">
+                <Button x:Name="SaveButton" Content="Add" Click="Save_Click" Padding="14,4" Margin="0,0,6,0" IsDefault="True" />
+                <Button x:Name="RemoveButton" Content="Remove" Click="Remove_Click" Padding="14,4" Margin="0,0,6,0" IsEnabled="False" />
+                <Button Content="New" Click="New_Click" Padding="14,4" />
+            </StackPanel>
+            <TextBlock x:Name="Message" Foreground="#D64545" TextWrapping="Wrap" Margin="0,8,0,0" />
+            <TextBlock TextWrapping="Wrap" Foreground="#5F666D" Margin="0,16,0,0"
+                       Text="A device that connects both by cable and by Wi-Fi has a different address for each. Add it twice, once per connection, to compare them." />
+        </StackPanel>
+    </Grid>
+</UserControl>

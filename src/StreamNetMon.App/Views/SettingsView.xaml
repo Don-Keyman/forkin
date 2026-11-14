@@ -1,0 +1,86 @@
+<UserControl x:Class="StreamNetMon.App.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <Style TargetType="TextBox">
+            <Setter Property="Width" Value="70" />
+            <Setter Property="Margin" Value="0,2,8,2" />
+        </Style>
+        <Style x:Key="Label" TargetType="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+        </Style>
+        <Style x:Key="Section" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,14,0,6" />
+        </Style>
+    </UserControl.Resources>
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="12">
+            <TextBlock Text="When a connection counts as degraded" Style="{StaticResource Section}" Margin="0,0,0,6" />
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="150" />
+                    <ColumnDefinition Width="110" />
+                    <ColumnDefinition Width="110" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition />
+                    <RowDefinition />
+                    <RowDefinition />
+                    <RowDefinition />
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Column="1" Text="Wired" Foreground="#5F666D" />
+                <TextBlock Grid.Column="2" Text="Wi-Fi" Foreground="#5F666D" />
+                <TextBlock Grid.Row="1" Text="Latency at or above (ms)" Style="{StaticResource Label}" />
+                <TextBox x:Name="LatencyWired" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Left" />
+                <TextBox x:Name="LatencyWifi" Grid.Row="1" Grid.Column="2" HorizontalAlignment="Left" />
+                <TextBlock Grid.Row="2" Text="Jitter at or above (ms)" Style="{StaticResource Label}" />
+                <TextBox x:Name="JitterWired" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Left" />
+                <TextBox x:Name="JitterWifi" Grid.Row="2" Grid.Column="2" HorizontalAlignment="Left" />
+                <TextBlock Grid.Row="3" Text="Loss at or above (%)" Style="{StaticResource Label}" />
+                <TextBox x:Name="Loss" Grid.Row="3" Grid.Column="1" HorizontalAlignment="Left" />
+            </Grid>
+
+            <TextBlock Text="Behaviour" Style="{StaticResource Section}" />
+            <CheckBox x:Name="StartWithWindows" Content="Start with Windows (hidden in the tray)" Margin="0,2" />
+            <CheckBox x:Name="Notifications" Content="Show a notification when a problem lasts more than 10 seconds" Margin="0,2" />
+
+            <TextBlock Text="Streaming server" Style="{StaticResource Section}" />
+            <TextBlock x:Name="Detected" Foreground="#5F666D" Margin="0,0,0,6" TextWrapping="Wrap" />
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Server" Style="{StaticResource Label}" />
+                <ComboBox x:Name="Mode" Width="170" Margin="0,2,16,2">
+                    <ComboBoxItem Content="Detect automatically" />
+                    <ComboBoxItem Content="Vibepollo / Apollo" />
+                    <ComboBoxItem Content="Sunshine" />
+                    <ComboBoxItem Content="None" />
+                </ComboBox>
+                <TextBlock Text="Port" Style="{StaticResource Label}" />
+                <TextBox x:Name="Port" />
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                <Button Content="Save settings" Click="Save_Click" Padding="14,4" />
+                <TextBlock x:Name="SaveMessage" Margin="10,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap" />
+            </StackPanel>
+
+            <TextBlock Text="Access token" Style="{StaticResource Section}" />
+            <TextBlock TextWrapping="Wrap" Foreground="#5F666D" Margin="0,0,0,6"
+                       Text="Create a read-only token in the streaming server's web page and paste it here. It is stored encrypted for your Windows account and is only ever sent to this PC's own streaming server." />
+            <StackPanel Orientation="Horizontal">
+                <PasswordBox x:Name="Token" Width="300" Margin="0,2,8,2" />
+                <Button Content="Save token" Click="SaveToken_Click" Padding="10,2" Margin="0,2,6,2" />
+                <Button Content="Clear" Click="ClearToken_Click" Padding="10,2" Margin="0,2" />
+            </StackPanel>
+            <TextBlock x:Name="TokenStatus" Foreground="#5F666D" Margin="0,2,0,0" />
+
+            <TextBlock Text="Diagnostics" Style="{StaticResource Section}" />
+            <StackPanel Orientation="Horizontal">
+                <Button Content="Save server responses for diagnostics" Click="Diagnostics_Click" Padding="10,2" />
+            </StackPanel>
+            <TextBlock x:Name="DiagnosticsStatus" Foreground="#5F666D" Margin="0,4,0,0" TextWrapping="Wrap" />
+            <TextBlock x:Name="DataFolder" Foreground="#5F666D" Margin="0,14,0,0" TextWrapping="Wrap" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
