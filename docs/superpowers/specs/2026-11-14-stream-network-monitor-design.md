@@ -26,6 +26,10 @@ hindsight.
 - Give a plain-language verdict ("Wi-Fi hop to iPad is degraded; router and
   desktop are fine").
 - Keep history so a past stutter can be looked up by time.
+- Pick up streaming sessions from the streaming server when it offers them, so
+  devices appear on their own and history is marked per session.
+- Keep working, unchanged, if the server is swapped for Sunshine or another
+  fork, or is not running at all.
 - Stay light: it runs next to a GPU- and CPU-heavy stream.
 
 ## Non-goals
@@ -44,7 +48,10 @@ hindsight.
 - Measurably hurting stream performance (CPU spikes, GPU use, network chatter).
 - Requiring administrator rights to run.
 - Opening any listening port on the network.
-- Reading the streaming server's credentials or state files.
+- Reading the streaming server's credentials or state files, or asking for its
+  password. Access is by a token the user creates and pastes into the app.
+- Depending on the streaming server: network measurement must never break
+  because the server changed, updated, or is absent.
 
 ## Constraints
 
@@ -98,6 +105,49 @@ The user picked option 1 and agreed to replace the scaffold.
 - An "Add device" picker lists addresses from the Windows neighbour table
   (devices the desktop has recently seen on the LAN) so nobody has to type IPs.
 - The default gateway is added automatically.
+- When the streaming-server link (below) reports a live session, that client is
+  added automatically as a session device, labelled with its paired name, and
+  probed for as long as the session lasts. Session devices are not saved to the
+  list unless the user pins them; a pinned device gets a connection type.
+- A session device whose address matches a saved entry is shown as that entry,
+  not twice.
+
+### Streaming-server link
+
+A swappable piece behind one interface (`IStreamServer`): "is a server running,
+which one, who is streaming now (name, address, start time), what does the host
+report about itself". Network measurement never depends on it.
+
+| Mode | Used when | Provides |
+|---|---|---|
+| Vibepollo / Apollo | its extended endpoints answer | live sessions with client name and address, host statistics, session start/end |
+| Sunshine | only the stock Sunshine endpoints answer | whether it is running, paired device names for the "Add device" picker |
+| None | no server found, or no token | nothing; saved list only |
+
+- **Detection**: on startup and every 30 seconds, look for the server's local
+  web interface on `https://localhost:47990` (port editable) and check which
+  endpoints exist. Mode is chosen automatically; settings has a manual
+  override (Auto / Vibepollo / Sunshine / None).
+- **Endpoints seen on Stella's Vibepollo install** (listed from its web assets,
+  responses not yet seen): `/api/session/status`, `/api/rtsp/sessions`,
+  `/api/host/stats`, `/api/history/sessions`, `/api/clients/list`,
+  `/api/token`, `/api/token/routes`.
+- **Access**: the user creates an access token in the server's web page,
+  limited to read-only endpoints, and pastes it into the app's Settings screen.
+  It is stored encrypted with Windows DPAPI for the current user, never written
+  to logs, and never shown again in full. Stock Sunshine has no tokens; for it
+  the Sunshine mode works without login where it can, and otherwise reports
+  "running" from the process list only.
+- **Local certificate**: the server uses a self-signed certificate. The app
+  accepts it for `localhost` only.
+- **Polling**: session status every 2 seconds, host statistics every 5 seconds.
+  Read-only requests only; the app never calls an endpoint that changes the
+  server.
+- **Failure**: any error, timeout or unexpected response drops the link to
+  "None" for that cycle and shows a small "server link unavailable" note in the
+  status bar. It never raises a verdict or stops probing.
+- **Sessions in history**: each session is stored with client name, address,
+  start and end, and drawn as a shaded band on the History timeline.
 
 ### Verdict
 
@@ -136,7 +186,10 @@ One line at the top, recomputed every second from the rolling windows:
 - **History**: pick a device and a time range; charts of latency, jitter, loss
   and desktop throughput on a shared time axis.
 - **Devices**: the saved list and the "Add device" picker.
-- **Settings**: thresholds, start with Windows, notifications on/off.
+- **Settings**: thresholds, start with Windows, notifications on/off, streaming
+  server mode, port and access token.
+- The header shows the detected server and, while streaming, who is connected
+  ("Vibepollo · streaming to iPad").
 - **Tray icon**: green / amber / red following the verdict. Closing the window
   minimises to the tray; "Exit" in the tray menu quits.
 - **Notification**: one Windows toast when the verdict leaves "All clear" for
@@ -165,7 +218,7 @@ tests/StreamNetMon.Core.Tests/  xUnit
 ```
 
 - Core takes its inputs through interfaces (`IPinger`, `IAdapterSource`,
-  `IClock`) so the statistics, verdict and storage are tested with fakes and
+  `IStreamServer`, `IClock`) so the statistics, verdict and storage are tested with fakes and
   need no network.
 - The existing Node/TypeScript files (`package.json`, `tsconfig*.json`, `src/`,
   `test/`, `.nvmrc`, lockfile) are removed; `.gitignore` and `README.md` are
@@ -181,11 +234,12 @@ target per second.
 ## Calls made by the designer (not decided by the user)
 
 - App name "Stream network monitor" / `StreamNetMon`.
-- Devices are a saved list that is always probed, rather than auto-detected
-  from the streaming server. The server's log on Stella showed no reliable
-  "client connected from <address>" line, and its session folder is locked.
-  Always-on probing at 1 packet per second costs nothing and also gives a
-  baseline for when nothing is streaming.
+- Saved devices are always probed, streaming or not. At 1 packet per second
+  this costs nothing and gives a baseline for when nothing is streaming.
+- The streaming-server link reads the server's web interface, not its log files
+  or its locked session folder.
+- Polling intervals, the localhost-only certificate exception, and DPAPI for
+  the token.
 - Toast notifications exist but are **off by default**; the tray icon colour is
   the default signal.
 - Threshold defaults, the 30-second window, 5-second storage resolution and
@@ -198,6 +252,12 @@ target per second.
 - Tray icon implementation (a maintained NuGet package or `NotifyIcon` interop).
 - SQLite access library and schema details.
 - Exact layout, colours and icon, within the sketch above.
+- The response shapes of the Vibepollo endpoints, and what stock Sunshine
+  answers without a token. These must be read from a real server on Stella
+  (with a token pasted into the app, and a stream running) before the Vibepollo
+  mode is called done. If live sessions turn out not to include the client
+  address, say so and fall back to matching by paired name against saved
+  devices.
 - How to package for the user (a self-contained published folder is enough; no
   installer required).
 
@@ -210,3 +270,9 @@ target per second.
 - With a real device added: unplugging it or turning its Wi-Fi off turns it
   offline within 60 seconds without an alert.
 - Idle footprint measured on Stella against the budget above.
+- Unit tests for mode detection and for each mode against recorded responses,
+  including malformed and failing ones.
+- On Stella with a token: the header names the server; starting a stream makes
+  the client appear within a few seconds and ending it closes the session band.
+- With the server stopped, and with the mode forced to None: probing, verdict
+  and history carry on unchanged.
