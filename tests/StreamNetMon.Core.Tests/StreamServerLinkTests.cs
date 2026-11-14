@@ -249,4 +249,16 @@ public class StreamServerLinkTests
         Assert.Contains("sessions", link.LastBodies[Sessions]);
         Assert.All(link.LastBodies, kv => Assert.DoesNotContain("tok123", kv.Key + kv.Value));
     }
+
+    [Fact]
+    public async Task Token_limited_to_statistics_still_gives_host_stats_and_says_what_is_missing()
+    {
+        _http.Json(Status, "", 401).Json(Sessions, "{\"error\":\"Forbidden\"}", 403).Json(Clients, "", 403)
+             .Json(Stats, "{\"cpu\":7}");
+        var s = await Link().PollAsync(default);
+        Assert.Equal(ServerKind.Vibepollo, s.Kind);
+        Assert.Empty(s.Sessions);
+        Assert.Equal("7", s.HostStats["cpu"]);
+        Assert.Equal("This access token does not allow live sessions", s.Note);
+    }
 }

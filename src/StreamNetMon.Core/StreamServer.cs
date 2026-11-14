@@ -28,6 +28,7 @@ public sealed class StreamServerLink : IStreamServer
     public const string NoTokenNote = "Add an access token in Settings to see live sessions";
     public const string RejectedNote = "Access token was rejected";
     public const string UnavailableNote = "Server link unavailable";
+    public const string LimitedNote = "This access token does not allow live sessions";
 
     private const string SessionsPath = "/api/rtsp/sessions";
     private const string StatusPath = "/api/session/status";
@@ -48,6 +49,7 @@ public sealed class StreamServerLink : IStreamServer
     private DateTimeOffset? _detectedAt;
     private IReadOnlyDictionary<string, string> _stats = NoStats;
     private DateTimeOffset? _statsAt;
+    private bool _statsAllowed;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> _lastBodies = new();
 
     public StreamServerLink(HttpMessageHandler handler, IClock clock, Func<ServerMode> mode, Func<int> port, Func<string?> token)
@@ -117,10 +119,13 @@ public sealed class StreamServerLink : IStreamServer
 
         var sessions = await GetAsync(SessionsPath, ct).ConfigureAwait(false);
         if (sessions.Outcome == Outcome.NotFound) sessions = await GetAsync(StatusPath, ct).ConfigureAwait(false);
+        var sessionsRefused = false;
         switch (sessions.Outcome)
         {
             case Outcome.Unauthorized:
-                return status with { Note = RejectedNote };
+                // The token may simply not cover sessions; see what else it allows before judging it.
+                sessionsRefused = true;
+                break;
             case Outcome.Ok when JsonWalk.TryParse(sessions.Body) is { } doc:
                 doc.Dispose();
                 status = status with { Sessions = VibepolloParser.Sessions(sessions.Body) };
@@ -137,8 +142,12 @@ public sealed class StreamServerLink : IStreamServer
         {
             var stats = await GetAsync(StatsPath, ct).ConfigureAwait(false);
             _stats = stats.Outcome == Outcome.Ok ? VibepolloParser.HostStats(stats.Body) : NoStats;
+            _statsAllowed = stats.Outcome == Outcome.Ok;
             _statsAt = now;
         }
+
+        if (sessionsRefused)
+            status = status with { Note = _statsAllowed || clients.Outcome == Outcome.Ok ? LimitedNote : RejectedNote };
         return status with { HostStats = _stats };
     }
 
