@@ -24,3 +24,11 @@ public interface ISecretProtector
     /// <summary>The original text, or null when it cannot be read back (other user, damaged value).</summary>
     string? Unprotect(string stored);
 }
+
+public interface INeighbourSource
+{
+    /// <summary>Devices this PC has recently seen on the local network.</summary>
+    IReadOnlyList<(string Address, string? Name)> Neighbours();
+
+    string? DefaultGateway();
+}

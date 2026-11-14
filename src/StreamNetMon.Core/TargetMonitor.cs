@@ -10,7 +10,8 @@ public sealed class TargetMonitor(Device device, IPinger pinger, IClock clock)
     private readonly RollingWindow _window = new(Window, OfflineAfter);
     private readonly object _gate = new();
 
-    public Device Device { get; } = device;
+    /// <summary>Name, type and role may be edited in place; a different host needs a new monitor.</summary>
+    public Device Device { get; internal set; } = device;
 
     public async Task ProbeOnceAsync(CancellationToken ct)
     {

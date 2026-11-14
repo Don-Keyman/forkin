@@ -47,3 +47,33 @@ public sealed class FakeHttpHandler : HttpMessageHandler
         };
     }
 }
+
+public sealed class FakeAdapter : IAdapterSource
+{
+    public AdapterReading? Reading { get; set; } = new("Ethernet", 2_500_000_000, 0, 0, 0, 0);
+    public AdapterReading? Read() => Reading;
+}
+
+public sealed class FakeServer : IStreamServer
+{
+    public ServerStatus Status { get; set; } = ServerStatus.Absent;
+    public bool Throw { get; set; }
+    public int Polls { get; private set; }
+
+    public Task<ServerStatus> PollAsync(CancellationToken ct)
+    {
+        Polls++;
+        if (Throw) throw new InvalidOperationException("boom");
+        return Task.FromResult(Status);
+    }
+
+    public void Streaming(params StreamSession[] sessions) =>
+        Status = new ServerStatus(ServerKind.Vibepollo, true, sessions, [], null, new Dictionary<string, string>());
+}
+
+public sealed class FakeNeighbours : INeighbourSource
+{
+    public string? Gateway { get; set; } = "192.168.1.1";
+    public IReadOnlyList<(string Address, string? Name)> Neighbours() => [];
+    public string? DefaultGateway() => Gateway;
+}
