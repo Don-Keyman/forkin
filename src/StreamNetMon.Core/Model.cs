@@ -10,3 +10,5 @@ public sealed record Device(Guid Id, string Name, string Host, ConnectionType Ty
 public readonly record struct ProbeResult(DateTimeOffset At, double? RttMs);
 
 public sealed record TargetStats(double? LatencyMs, double? JitterMs, double LossPct, bool Offline, int Samples);
+
+public sealed record TargetState(Device Device, TargetStats Stats, IReadOnlyList<ProbeResult> Last60s);
