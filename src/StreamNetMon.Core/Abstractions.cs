@@ -16,3 +16,11 @@ public interface IAdapterSource
     /// <summary>Current counters of the adapter carrying the stream, or null when there is none.</summary>
     AdapterReading? Read();
 }
+
+public interface ISecretProtector
+{
+    string Protect(string plain);
+
+    /// <summary>The original text, or null when it cannot be read back (other user, damaged value).</summary>
+    string? Unprotect(string stored);
+}
