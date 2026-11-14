@@ -28,11 +28,12 @@ public static class VerdictEngine
 
     public static Verdict Evaluate(AdapterStats? adapter, IReadOnlyList<TargetState> targets, Thresholds th)
     {
-        if (adapter is not null && (adapter.LinkSpeedBps < adapter.UsualLinkSpeedBps || adapter.OutErrorsDelta > 0))
+        // No adapter at all means the cable is out or the adapter is disabled.
+        if (adapter is null || adapter.LinkSpeedBps < adapter.UsualLinkSpeedBps || adapter.OutErrorsDelta > 0)
             return new Verdict(VerdictLevel.Problem, "Desktop adapter problem");
 
         var degraded = targets.Where(t => IsDegraded(t, th)).ToList();
-        if (degraded.Any(t => t.Device.Role is TargetRole.Router or TargetRole.Gateway))
+        if (degraded.Any(IsInfrastructure) || targets.Any(t => IsInfrastructure(t) && WentSilent(t)))
             return new Verdict(VerdictLevel.Problem, "Network path to router is degraded");
 
         var devices = degraded.Where(t => t.Device.Role == TargetRole.StreamingDevice).ToList();
@@ -43,6 +44,14 @@ public static class VerdictEngine
 
         return Verdict.AllClear;
     }
+
+    private static bool IsInfrastructure(TargetState t) => t.Device.Role is TargetRole.Router or TargetRole.Gateway;
+
+    /// <summary>
+    /// A router that used to answer and no longer does is a real problem. One that never
+    /// answered may simply ignore ping, and a tablet going quiet is just asleep.
+    /// </summary>
+    public static bool WentSilent(TargetState t) => t.Stats.Offline && t.Stats.EverReplied;
 
     private static TargetState? Worst(IEnumerable<TargetState> devices, ConnectionType type) =>
         devices.Where(t => t.Device.Type == type).MaxBy(t => t.Stats.LossPct);

@@ -282,4 +282,17 @@ public sealed class MonitorEngineTests : IDisposable
         Assert.Contains(e.Current.Targets, t => t.Device.Name == "Shield");
         Assert.Single(_settings.Devices);
     }
+
+    [Fact]
+    public async Task Session_whose_reported_start_changes_is_still_one_session()
+    {
+        var e = Engine();
+        var start = _clock.Now;
+        for (var i = 0; i < 6; i++)
+        {
+            _server.Streaming(new StreamSession("iPad", "192.168.1.40", _clock.Now.AddMilliseconds(-i * 300)));
+            await Ticks(e, 1);
+        }
+        Assert.Single(_history.QuerySessions(start.AddHours(-1), start.AddHours(1)));
+    }
 }

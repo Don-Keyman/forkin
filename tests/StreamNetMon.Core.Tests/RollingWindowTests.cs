@@ -83,4 +83,16 @@ public class RollingWindowTests
         var w = With(10, 11, 12, 13);
         Assert.Equal(2, w.Recent(T0.AddSeconds(3), TimeSpan.FromSeconds(1.5)).Count);
     }
+
+    [Fact]
+    public void EverReplied_remembers_a_reply_after_going_offline()
+    {
+        var w = New();
+        Assert.False(w.Snapshot(T0).EverReplied);
+        w.Add(new ProbeResult(T0, 10));
+        Assert.True(w.Snapshot(T0).EverReplied);
+        var s = w.Snapshot(T0.AddSeconds(120));
+        Assert.True(s.Offline);
+        Assert.True(s.EverReplied);
+    }
 }

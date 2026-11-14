@@ -23,8 +23,28 @@ public class VerdictTests
     }
 
     [Fact]
-    public void All_clear_with_no_adapter_and_no_targets() =>
-        Assert.Equal("All clear", Eval(null).Message);
+    public void No_active_adapter_is_an_adapter_problem() =>
+        Assert.Equal(new Verdict(VerdictLevel.Problem, "Desktop adapter problem"), Eval(null));
+
+    [Fact]
+    public void Router_that_stops_answering_is_a_network_path_problem()
+    {
+        var router = T("Router", ConnectionType.Wired, TargetRole.Router, offline: true);
+        router = router with { Stats = router.Stats with { EverReplied = true } };
+        Assert.Equal(new Verdict(VerdictLevel.Problem, "Network path to router is degraded"), Eval(Adapter(), router));
+    }
+
+    [Fact]
+    public void Router_that_never_answered_ping_is_not_a_problem() =>
+        Assert.Equal("All clear", Eval(Adapter(), T("Router", ConnectionType.Wired, TargetRole.Router, offline: true)).Message);
+
+    [Fact]
+    public void Streaming_device_that_stops_answering_is_not_a_problem()
+    {
+        var ipad = T("iPad", ConnectionType.WiFi, offline: true);
+        ipad = ipad with { Stats = ipad.Stats with { EverReplied = true } };
+        Assert.Equal("All clear", Eval(Adapter(), ipad).Message);
+    }
 
     [Fact]
     public void Link_speed_drop_is_adapter_problem() =>

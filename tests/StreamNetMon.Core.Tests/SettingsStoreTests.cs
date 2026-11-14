@@ -99,4 +99,12 @@ public sealed class SettingsStoreTests : IDisposable
         new SettingsStore(Path.Combine(_dir, "nested")).Save(new AppSettings());
         Assert.True(File.Exists(Path.Combine(_dir, "nested", "settings.json")));
     }
+
+    [Fact]
+    public void Partial_thresholds_keep_defaults_for_the_rest()
+    {
+        Directory.CreateDirectory(_dir);
+        File.WriteAllText(File_, "{\"Thresholds\": {\"LossPct\": 2}}");
+        Assert.Equal(new Thresholds(LossPct: 2), new SettingsStore(_dir).Load().Thresholds);
+    }
 }

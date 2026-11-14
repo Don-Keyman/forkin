@@ -19,7 +19,7 @@ public sealed class RollingWindow(TimeSpan window, TimeSpan offlineAfter)
         Trim(now);
         var inWindow = Recent(now, window);
         var offline = _lastReply is null || now - _lastReply.Value > offlineAfter;
-        if (offline) return new TargetStats(null, null, 0, true, inWindow.Count);
+        if (offline) return new TargetStats(null, null, 0, true, inWindow.Count, _lastReply is not null);
 
         double sum = 0, jitterSum = 0;
         int replies = 0, jitterPairs = 0;
@@ -41,7 +41,7 @@ public sealed class RollingWindow(TimeSpan window, TimeSpan offlineAfter)
         return new TargetStats(
             replies > 0 ? sum / replies : null,
             jitterPairs > 0 ? jitterSum / jitterPairs : null,
-            loss, false, inWindow.Count);
+            loss, false, inWindow.Count, EverReplied: true);
     }
 
     /// <summary>Samples no older than <paramref name="span"/>, oldest first.</summary>

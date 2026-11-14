@@ -92,7 +92,7 @@ public sealed class LiveViewModel : Observable
             row.Latency = t.Stats.Offline ? "offline" : Format.Ms(t.Stats.LatencyMs);
             row.Jitter = t.Stats.Offline ? "" : Format.Ms(t.Stats.JitterMs);
             row.Loss = t.Stats.Offline ? "" : Format.Pct(t.Stats.LossPct);
-            row.Dot = t.Stats.Offline ? Palette.Idle
+            row.Dot = t.Stats.Offline ? (t.Device.Role != TargetRole.StreamingDevice && VerdictEngine.WentSilent(t) ? Palette.Problem : Palette.Idle)
                 : VerdictEngine.IsDegraded(t, thresholds) ? (t.Device.Role == TargetRole.StreamingDevice ? Palette.Warning : Palette.Problem)
                 : Palette.Ok;
             row.Ceiling = wifi ? thresholds.LatencyWiFiMs : thresholds.LatencyWiredMs;

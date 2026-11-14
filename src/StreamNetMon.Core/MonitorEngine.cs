@@ -33,7 +33,7 @@ public sealed class MonitorEngine
     private readonly BucketAggregator _adapterBuckets = new(BucketSize);
     private readonly AdapterTracker _adapterTracker = new();
     private readonly Dictionary<Guid, Device> _sessionDevices = new();
-    private readonly Dictionary<StreamSession, long> _openSessions = new();
+    private readonly Dictionary<(string Name, string? Address), long> _openSessions = new();
 
     private ServerStatus _serverStatus = ServerStatus.Absent;
     private Task<ServerStatus>? _poll;
@@ -158,18 +158,21 @@ public sealed class MonitorEngine
 
     private void ApplySessions(DateTimeOffset now, IReadOnlyList<StreamSession> sessions)
     {
-        var live = sessions.Distinct().ToList();
+        // A session is the same session for as long as the same client is connected from the
+        // same address, whatever else the server reports about it from one poll to the next.
+        var live = sessions.DistinctBy(Key).ToList();
+        var liveKeys = live.Select(Key).ToHashSet();
 
-        foreach (var ended in _openSessions.Keys.Except(live).ToList())
+        foreach (var ended in _openSessions.Keys.Where(k => !liveKeys.Contains(k)).ToList())
         {
             _history.CloseSession(_openSessions[ended], now);
             _openSessions.Remove(ended);
         }
 
-        foreach (var started in live.Where(s => !_openSessions.ContainsKey(s)))
+        foreach (var started in live.Where(s => !_openSessions.ContainsKey(Key(s))))
         {
             var address = started.Address ?? SavedByName(started.ClientName)?.Host;
-            _openSessions[started] = _history.OpenSession(started.ClientName, address, started.StartedAt ?? now);
+            _openSessions[Key(started)] = _history.OpenSession(started.ClientName, address, started.StartedAt ?? now);
         }
 
         // Session devices: one per live address that no saved device already covers.
@@ -183,6 +186,9 @@ public sealed class MonitorEngine
         _sessionDevices.Clear();
         foreach (var (id, device) in wanted) _sessionDevices[id] = device;
     }
+
+    private static (string Name, string? Address) Key(StreamSession s) =>
+        (s.ClientName.ToLowerInvariant(), s.Address?.ToLowerInvariant());
 
     private Device? SavedByHost(string host) =>
         _settings.Devices.FirstOrDefault(d => string.Equals(d.Host, host, StringComparison.OrdinalIgnoreCase));
