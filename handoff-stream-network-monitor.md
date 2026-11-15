@@ -1,6 +1,6 @@
 # active-memory handoff: Stream network monitor (forkin)
 
-**Handoff #2** · 2026-11-15 · Lineage: #1 (2026-11-15): designed, planned and built a Windows tray app that monitors streaming-host connection quality; running on the user's PC and reading Vibepollo's real data; #2 (2026-11-15): rebuilt on Stella, confirmed two streams show and clear, found the iPad sits behind a second router Stella cannot ping through, added a "trouble past the router" verdict from the stream's own figures, measured memory flat at about 216 MB (over the 150 MB budget)
+**Handoff #3** · 2026-11-15 · Lineage: #3 (2026-11-14 to 15, run in Claude Code directly on Stella): user dropped the 150 MB memory budget (never theirs; about 216 MB is fine), design doc given a "What changed after building" section, ASUS ping setting confirmed turned back off, git identity set for the repo, GitHub MCP tried and removed (not needed); no app code changed; #1 (2026-11-15): designed, planned and built a Windows tray app that monitors streaming-host connection quality; running on the user's PC and reading Vibepollo's real data; #2 (2026-11-15): rebuilt on Stella, confirmed two streams show and clear, found the iPad sits behind a second router Stella cannot ping through, added a "trouble past the router" verdict from the stream's own figures, measured memory flat at about 216 MB (over the 150 MB budget)
 
 ## 0. Instructions for Claude (read first)
 
@@ -117,6 +117,7 @@ You are continuing work from a previous chat. That chat is gone; this file is th
 | Repo | `Don-Keyman/forkin` |
 | Branch | `claude/keen-dirac-nr178b` |
 | PR | #1, draft, open: https://github.com/Don-Keyman/forkin/pull/1 (description updated in handoff #2; no CI, no reviewers, no comments) |
+| Latest docs commit | `a51fbf8` "docs: drop the memory budget; record what changed after building" (session 3; docs only) |
 | Latest code commit | `79d43a6` "feat: point at the far side when a stream reports losses behind a healthy router" |
 | Tests | 164 passing (`dotnet test tests/StreamNetMon.Core.Tests`) |
 | Design doc | `docs/superpowers/specs/2026-11-14-stream-network-monitor-design.md` |
@@ -194,7 +195,10 @@ Memory rose for the first 5 minutes, then stayed within 2 MB for 2 hours: no lea
 - `git pull` writes progress to stderr, so the build log shows a red "NativeCommandError" line that is not a failure.
 - The cloud container has no .NET by default: `curl -sSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 10.0 --install-dir /root/.dotnet`, then `export PATH=/root/.dotnet:$PATH`. Build the app there with `-p:EnableWindowsTargeting=true`.
 - A new cloud session checks out its own branch with only the initial commit; `git fetch origin` and check out `claude/keen-dirac-nr178b`.
-- GitHub work goes through the `mcp__github__*` tools (load with ToolSearch); the "plugin:github" server fails to connect and is not needed.
+- GitHub work in a cloud session goes through the `mcp__github__*` tools (load with ToolSearch); the "plugin:github" server fails to connect and is not needed.
+- In Claude Code on Stella itself (working directory `C:\Users\zoso7\forkin`), no connector is needed: run commands locally instead of through Remote Desktop Commander, and use `gh`, which is signed in as Don-Keyman. Check which kind of session this is before reaching for Remote Desktop Commander.
+- Do not add the GitHub MCP server on Stella: `claude mcp add --transport http github https://api.githubcopilot.com/mcp/` fails with "Incompatible auth server: does not support dynamic client registration". It was removed; the user agreed `gh` is enough.
+- Commits from Stella use the repo-only identity `Don-Keyman` with GitHub's no-reply address (already set in this clone; the user chose it over their real email).
 
 ## 9. People, terms & names
 - **People:** the user (owner of Stella and the repo).
