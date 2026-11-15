@@ -86,6 +86,7 @@ You are continuing work from a previous chat. That chat is gone; this file is th
 | Trigger levels: 2 or more new losses, or 3 or more new frame recoveries, within 30 s | Claude's call so one hiccup does not trip it; told to the user as adjustable |
 | Work with the two-router setup as it is | User cannot re-cable (hard rule 13) |
 | Memory test run with the app minimized to the tray | That is how the user runs it |
+| No memory budget; about 216 MB is accepted | User, session 3: "i have no idea where the memory budget came from, i never asked for it, but where it is, or +- a few doesn't matter to personal home use." The 150 MB figure was Claude's invention |
 
 ## 7. Changed / rejected
 - "monitors local network traffic and interference" → connection quality from the streaming host to in-home devices (user clarified).
@@ -106,6 +107,7 @@ You are continuing work from a previous chat. That chat is gone; this file is th
 - ❌ Pinging the ASUS router's internet-side address from Stella: tried with "Respond ICMP Echo (ping) Request from WAN" applied; pings stop at 192.168.2.254. Claude advised turning the setting back to No.
 - ❌ Scanning the network from Stella to find the iPad (results unreliable and the iPad is on another network).
 - ❌ Turning notifications on (hard rule 12).
+- ❌ The 150 MB memory budget and any work to reduce memory (user dropped it in session 3; only a leak would matter).
 
 ## 8. Data & facts (exact)
 
@@ -169,7 +171,7 @@ You are continuing work from a previous chat. That chat is gone; this file is th
 - History: SQLite, 5 s buckets, 14-day retention. Server polling: detection 30 s, sessions 2 s, host stats 5 s; request timeout 2 s.
 - Verdicts, exactly, in rank order: `Desktop adapter problem`, `Network path to router is degraded`, `Wi-Fi hop to {name} is degraded`, `Wired path to {name} is degraded`, `Stream to {name} has trouble past the router`, `All clear`.
 - Stream trouble (`StreamTroubleTracker`): window 30 s; `LossesInWindow` = 2; `RecoveriesInWindow` = 3 (frame recoveries = `idr_requests`); counters going backwards mean a new stream and start over; level Warning.
-- Footprint budget: 1% of one core and 150 MB.
+- Footprint: 1% of one core. No memory budget (dropped by the user in session 3).
 
 **Footprint measurements on Stella**
 | When | Conditions | Working set | Private memory | CPU |
@@ -181,7 +183,7 @@ You are continuing work from a previous chat. That chat is gone; this file is th
 | Handoff #2, 20:16 | in tray | 216 MB | 160 MB | — |
 | Handoff #2, 21:14 (last of 120 readings) | in tray | 216 MB | 159 MB | about 0.5% of one core over 2 hours |
 
-Memory rose for the first 5 minutes, then stayed within 2 MB for 2 hours: no leak, but about 216 MB against the 150 MB budget. Handles 812–860, threads 20–23, steady. Cause not confirmed; Claude's guess is display memory kept from the maximized window.
+Memory rose for the first 5 minutes, then stayed within 2 MB for 2 hours: no leak. About 216 MB, which the user accepts (the 150 MB budget was dropped in session 3). Handles 812–860, threads 20–23, steady. Cause not confirmed; Claude's guess is display memory kept from the maximized window.
 
 **Lessons that cost time**
 - Windows takes 2048 ms to refuse an IPv6 loopback connect; the app uses `LoopbackConnector` (races IPv4/IPv6 loopback, refuses any other host).
@@ -210,8 +212,9 @@ Memory rose for the first 5 minutes, then stayed within 2 MB for 2 hours: no lea
 | Vibepollo link | working with real token | on Stella | Two streams showed as two ▶ lines; a line goes when its stream ends |
 | App on Stella | running, in tray | built from `79d43a6` | Shows "All clear"; "encoder set to" label confirmed |
 | Saved devices on Stella | none; only the gateway | — | Streaming devices cannot be pinged (section 7) |
-| Memory | over budget, not leaking | `%TEMP%\snm-mem.csv` (finished, 120 readings) | About 216 MB vs 150 MB; fix not started; user has not answered whether to look into it |
-| ASUS "Respond ICMP Echo (ping) Request from WAN" | user applied it; did not help | ASUS app | Claude advised setting it back to No; not confirmed done |
+| Memory | accepted, not leaking | `%TEMP%\snm-mem.csv` (finished, 120 readings) | About 216 MB, flat; user dropped the budget in session 3; no work needed |
+| Design doc | updated in session 3 | `docs/superpowers/specs/…-design.md` | New end section "What changed after building": two networks, no client address, new verdict, no memory limit |
+| ASUS "Respond ICMP Echo (ping) Request from WAN" | user applied it; did not help | ASUS app | User turned it back off (confirmed in session 3) |
 | README | updated | repo root | Lists the new verdict |
 | PR #1 | draft, open | description current (164 tests) | No CI in the repo |
 | Sunshine mode | untested | — | No Sunshine install |
@@ -221,17 +224,14 @@ Memory rose for the first 5 minutes, then stayed within 2 MB for 2 hours: no lea
 Deferred minors: the first adapter reading after start records a 0 send rate (a dip in history); "Seen on your network" lists the gateway and shows blank names (router has no reverse DNS).
 
 ## 11. Next steps
-1. **Next action:** Ask the user whether to bring the app's memory back under 150 MB. If yes: on Stella, restart the app without ever opening or maximizing the window and log memory for 15 minutes (reuse `%TEMP%\snm-mem.ps1`) to test the guess that the maximized window caused the jump from 96–112 MB to 216 MB; then, test-first, make the app release window and chart memory when it goes to the tray, rebuild with `snm-publish.ps1`, and re-measure.
-2. Remind the user to set the ASUS "Respond ICMP Echo (ping) Request from WAN" back to No, if not already done.
-3. See the "Stream to pp has trouble past the router" verdict fire on Stella during a real bad stream; adjust the trigger levels (2 losses / 3 recoveries in 30 s) if it is too jumpy or too quiet.
-4. Update the design doc for the two-router setup and the new verdict.
-5. Still untested: Sunshine mode; a device going offline and back on real hardware.
-6. When testing is finished, ask whether to delete the helper scripts and outputs in Stella's `%TEMP%`.
-7. PR #1: the old session's subscription and check-ins do not carry over; subscribe again if the user wants it watched.
+1. **Next action:** See the "Stream to pp has trouble past the router" verdict fire on Stella during a real bad stream; adjust the trigger levels (2 losses / 3 recoveries in 30 s) if it is too jumpy or too quiet. This waits on the user noticing a bad stream.
+3. Still untested: Sunshine mode; a device going offline and back on real hardware.
+4. When testing is finished, ask whether to delete the helper scripts and outputs in Stella's `%TEMP%`.
+5. PR #1: the old session's subscription and check-ins do not carry over; subscribe again if the user wants it watched.
+
+Done in session 3: memory question closed (no budget); design doc updated.
 
 ## 12. Open questions ⚠️
-- Should Claude look into the memory use (about 216 MB vs the 150 MB budget)? Asked at the end of handoff #2; not answered. Candidates: yes, fix it / no, accept it and raise the budget.
-- Did the user turn the ASUS "Respond ICMP Echo (ping) Request from WAN" setting back to No?
 - Which device is `stairwire`? (Only matters for naming; Claude guessed a wired spot by the stairs, unconfirmed.)
 - Should the helper scripts in Stella's `%TEMP%` be deleted when testing is finished?
 

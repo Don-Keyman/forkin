@@ -1,7 +1,8 @@
 # Stream network monitor — design
 
 Date: 2026-11-14
-Status: awaiting approval
+Status: approved and built. Where the build differs from this design, see
+"What changed after building" at the end; that section wins.
 
 ## Intent
 
@@ -224,12 +225,16 @@ tests/StreamNetMon.Core.Tests/  xUnit
   `test/`, `.nvmrc`, lockfile) are removed; `.gitignore` and `README.md` are
   rewritten for .NET.
 
-### Footprint budget
+### Footprint
 
-Under 1% CPU on average and under 150 MB memory while the window is hidden;
-no GPU-accelerated animation; charts redraw at most once per second and not at
-all while the window is hidden. Probe traffic is one small ICMP packet per
-target per second.
+Stay light next to a stream: under 1% CPU on average; no GPU-accelerated
+animation; charts redraw at most once per second and not at all while the
+window is hidden. Probe traffic is one small ICMP packet per target per second.
+
+There is no memory limit. An earlier version of this design set one at 150 MB;
+that was the designer's number, not the user's, and the user dropped it: for
+home use, memory around the measured level (about 216 MB, flat, no leak) is
+fine. Memory only matters if it keeps growing.
 
 ## Calls made by the designer (not decided by the user)
 
@@ -269,10 +274,74 @@ target per second.
   and shows the default gateway with sub-millisecond-range latency.
 - With a real device added: unplugging it or turning its Wi-Fi off turns it
   offline within 60 seconds without an alert.
-- Idle footprint measured on Stella against the budget above.
+- Idle footprint measured on Stella: CPU against the figure above, and memory
+  checked for steady growth only.
 - Unit tests for mode detection and for each mode against recorded responses,
   including malformed and failing ones.
 - On Stella with a token: the header names the server; starting a stream makes
   the client appear within a few seconds and ending it closes the session band.
 - With the server stopped, and with the mode forced to None: probing, verdict
   and history carry on unchanged.
+
+## What changed after building
+
+Found on Stella with the real server and the real network. Where this section
+and the design above disagree, this section is what the app does.
+
+### The house has two networks, not one
+
+```
+Stella ─wired─▶ provider's box ─▶ upstairs router ─wired or Wi-Fi─▶ iPad and
+192.168.2.67    192.168.2.254     (ASUS, own network                other streaming
+                (Stella's         192.168.71.x)                     devices
+                 gateway)
+```
+
+- The provider's box passes everything through to the upstairs router, which
+  runs its own network. The streaming devices live on that second network.
+- From Stella, nothing past the provider's box answers a ping: not the upstairs
+  router, not the devices behind it. The cabling stays as it is.
+- So the per-device rows in the design ("iPad wired", "iPad Wi-Fi", "Router
+  (up)") cannot be measured in this house. The saved list holds only the
+  gateway. Saved devices and their verdicts still work for anything that is on
+  Stella's own network.
+
+### Vibepollo gives no client address
+
+- Live sessions carry a paired name and stream figures, but no address. Session
+  devices are therefore not added and probed automatically.
+- A stream is tied to a saved device by paired name instead (exact, or the name
+  followed by a space, `-`, `_` or `(`), preferring a device that is online.
+- Token scopes in use, all read-only: `/api/session/status`,
+  `/api/rtsp/sessions`, `/api/clients/list`, `/api/host/stats`.
+
+### Per-stream figures and the "past the router" verdict
+
+- The Live tab shows one line per running stream: picture size, codec, frame
+  rate, the encoder's bitrate setting ("encoder set to …", which is the setting
+  and not the send rate), losses the client reports, and frame recoveries (the
+  client asking for a fresh full frame).
+- Those figures are the only view of the far side, so they feed a new verdict:
+  **"Stream to <device> has trouble past the router"**. It fires when a stream
+  reports 2 or more new losses, or 3 or more new frame recoveries, within 30
+  seconds, while this PC and its router look healthy. Counters going backwards
+  mean a new stream and start the count over.
+- Verdicts in rank order: Desktop adapter problem · Network path to router is
+  degraded · Wi-Fi hop to <device> is degraded · Wired path to <device> is
+  degraded · Stream to <device> has trouble past the router · All clear.
+- A router that answered before and goes silent counts as degraded; one that
+  has never answered ping is ignored. No network adapter at all counts as a
+  desktop adapter problem.
+
+### Builder's choices
+
+- Charts are small custom controls and the tray icon is the WinForms
+  `NotifyIcon`, in place of the suggested packages: no extra dependencies.
+- History range is presets (1 h / 6 h / 24 h / 7 d) with Earlier / Later / Now.
+- Notifications stay off by default; the user confirmed this.
+
+### Still untested
+
+- The "past the router" verdict firing on a stream that is really struggling.
+- Sunshine mode (no Sunshine install).
+- A saved device going offline and coming back, on real hardware.

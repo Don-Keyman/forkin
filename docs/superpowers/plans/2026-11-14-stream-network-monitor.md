@@ -21,7 +21,7 @@
 - Degraded defaults: loss ≥ 1%; jitter ≥ 5 ms wired / ≥ 15 ms Wi-Fi; latency ≥ 10 ms wired / ≥ 30 ms Wi-Fi.
 - Storage: `%LOCALAPPDATA%\StreamNetMon\` — `history.db` (SQLite, 5 s buckets, 14-day retention), `settings.json`.
 - Server polling: detection every 30 s, sessions every 2 s, host statistics every 5 s.
-- Footprint: under 1% average CPU and under 150 MB memory with the window hidden; charts redraw at most once per second and not while hidden.
+- Footprint: under 1% average CPU with the window hidden (the 150 MB memory limit first written here was dropped by the user; memory only matters if it keeps growing); charts redraw at most once per second and not while hidden.
 - Verdict messages, exactly: `All clear`, `Desktop adapter problem`, `Network path to router is degraded`, `Wi-Fi hop to {name} is degraded`, `Wired path to {name} is degraded`.
 - Build environments: the Linux container has the .NET 10 SDK at `/root/.dotnet/dotnet` — Core and tests build and run there; the App compiles there with `-p:EnableWindowsTargeting=true` but only runs on Stella. On Stella (Desktop Commander) commands return after 3 s: start builds in the background, redirect output to a file, read the file.
 
