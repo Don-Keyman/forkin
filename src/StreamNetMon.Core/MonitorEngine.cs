@@ -33,6 +33,7 @@ public sealed class MonitorEngine
     private readonly Dictionary<Guid, BucketAggregator> _targetBuckets = new();
     private readonly BucketAggregator _adapterBuckets = new(BucketSize);
     private readonly AdapterTracker _adapterTracker = new();
+    private readonly StreamTroubleTracker _streamTrouble = new();
     private readonly Dictionary<Guid, Device> _sessionDevices = new();
     private readonly Dictionary<(string Name, string? Address), long> _openSessions = new();
 
@@ -91,7 +92,7 @@ public sealed class MonitorEngine
                 var states = monitors.Where(m => _monitors.ContainsKey(m.Device.Id)).Select(m => m.State())
                     .OrderBy(s => s.Device.Role == TargetRole.StreamingDevice).ThenBy(s => s.Device.Name, StringComparer.OrdinalIgnoreCase)
                     .ToList();
-                var verdict = VerdictEngine.Evaluate(adapter, states, _settings.Thresholds);
+                var verdict = VerdictEngine.Evaluate(adapter, states, _settings.Thresholds, _streamTrouble.Troubled());
                 Record(now, states, adapter);
                 snapshot = new Snapshot(now, verdict, adapter, states, _serverStatus, _sessionDevices.Keys.ToHashSet(),
                     FindStreaming(states));
@@ -156,7 +157,11 @@ public sealed class MonitorEngine
             : ServerStatus.Absent with { Note = StreamServerLink.UnavailableNote };
         _ = done.Exception;   // observed
 
-        lock (_gate) ApplySessions(now, _serverStatus.Sessions);
+        lock (_gate)
+        {
+            ApplySessions(now, _serverStatus.Sessions);
+            _streamTrouble.Observe(_serverStatus.Sessions, now);
+        }
     }
 
     private void ApplySessions(DateTimeOffset now, IReadOnlyList<StreamSession> sessions)

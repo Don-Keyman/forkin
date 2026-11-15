@@ -124,4 +124,30 @@ public class VerdictTests
     [Fact]
     public void Fewer_than_5_samples_is_not_degraded() =>
         Assert.False(VerdictEngine.IsDegraded(T("a", ConnectionType.Wired, loss: 50, samples: 4), Th));
+
+    static Verdict EvalStreams(AdapterStats? a, string[] troubled, params TargetState[] t) =>
+        VerdictEngine.Evaluate(a, t, Th, troubled);
+
+    [Fact]
+    public void Stream_trouble_with_a_clean_path_to_the_router_points_past_the_router() =>
+        Assert.Equal(new Verdict(VerdictLevel.Warning, "Stream to pp has trouble past the router"),
+            EvalStreams(Adapter(), ["pp"], T("Gateway", ConnectionType.Wired, TargetRole.Gateway)));
+
+    [Fact]
+    public void Router_problem_outranks_stream_trouble() =>
+        Assert.Equal("Network path to router is degraded",
+            EvalStreams(Adapter(), ["pp"], T("Gateway", ConnectionType.Wired, TargetRole.Gateway, loss: 3)).Message);
+
+    [Fact]
+    public void Adapter_problem_outranks_stream_trouble() =>
+        Assert.Equal("Desktop adapter problem", EvalStreams(Adapter(errors: 1), ["pp"]).Message);
+
+    [Fact]
+    public void A_degraded_saved_device_outranks_stream_trouble() =>
+        Assert.Equal("Wi-Fi hop to pp Wi-Fi is degraded",
+            EvalStreams(Adapter(), ["pp"], T("pp Wi-Fi", ConnectionType.WiFi, loss: 4)).Message);
+
+    [Fact]
+    public void No_stream_trouble_is_all_clear() =>
+        Assert.Equal("All clear", EvalStreams(Adapter(), [], T("Gateway", ConnectionType.Wired, TargetRole.Gateway)).Message);
 }

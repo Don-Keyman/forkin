@@ -15,6 +15,10 @@ the router, or the Wi-Fi hop?
   - `Network path to router is degraded` — the gateway or a saved router is slow or losing packets
   - `Wi-Fi hop to <device> is degraded` — the routers are fine, a Wi-Fi device is not
   - `Wired path to <device> is degraded`
+  - `Stream to <device> has trouble past the router` — this PC and its router are
+    fine, but the streaming device itself reports lost data (2 or more in 30 s) or
+    keeps asking for frame recoveries (3 or more in 30 s). This is how trouble shows
+    when the device sits behind a second router that this PC cannot ping through.
 - **Per device**: latency, jitter and packet loss over the last 30 seconds, and
   a bar per second for the last minute (a red bar is a lost probe).
 - **The PC**: adapter name, link speed, send errors, discards, and how much it

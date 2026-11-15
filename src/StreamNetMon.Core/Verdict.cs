@@ -26,7 +26,12 @@ public static class VerdictEngine
                || s.LatencyMs >= (wifi ? th.LatencyWiFiMs : th.LatencyWiredMs);
     }
 
-    public static Verdict Evaluate(AdapterStats? adapter, IReadOnlyList<TargetState> targets, Thresholds th)
+    /// <param name="troubledStreams">
+    /// Streams whose client reports losses or keeps asking for frame recoveries (worst first). Used
+    /// when nothing this PC can ping explains it, e.g. when the client sits behind a second router.
+    /// </param>
+    public static Verdict Evaluate(AdapterStats? adapter, IReadOnlyList<TargetState> targets, Thresholds th,
+        IReadOnlyList<string>? troubledStreams = null)
     {
         // No adapter at all means the cable is out or the adapter is disabled.
         if (adapter is null || adapter.LinkSpeedBps < adapter.UsualLinkSpeedBps || adapter.OutErrorsDelta > 0)
@@ -41,6 +46,9 @@ public static class VerdictEngine
             return new Verdict(VerdictLevel.Warning, $"Wi-Fi hop to {wifi.Device.Name} is degraded");
         if (Worst(devices, ConnectionType.Wired) is { } wired)
             return new Verdict(VerdictLevel.Warning, $"Wired path to {wired.Device.Name} is degraded");
+
+        if (troubledStreams is [var stream, ..])
+            return new Verdict(VerdictLevel.Warning, $"Stream to {stream} has trouble past the router");
 
         return Verdict.AllClear;
     }

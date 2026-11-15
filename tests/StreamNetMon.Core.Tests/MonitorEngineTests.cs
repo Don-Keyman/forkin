@@ -332,4 +332,23 @@ public sealed class MonitorEngineTests : IDisposable
         await Ticks(e, 3);
         Assert.Empty(e.Current.StreamingIds);
     }
+
+    static ServerStatus Streaming(string name, long losses, long recoveries) =>
+        new(ServerKind.Vibepollo, true,
+            [new StreamSession(name, null, null, new StreamInfo(100_000, 120, losses, recoveries, 0, "HEVC"))],
+            [name], null, new Dictionary<string, string>());
+
+    [Fact]
+    public async Task Losses_the_client_reports_behind_a_healthy_router_show_in_the_verdict()
+    {
+        _pinger.Hosts["192.168.1.1"] = () => 1;
+        _server.Status = Streaming("pp", 0, 0);
+        var e = Engine();
+        await Ticks(e, 6);
+        Assert.Equal("All clear", e.Current.Verdict.Message);
+
+        _server.Status = Streaming("pp", 6, 0);
+        await Ticks(e, 6);
+        Assert.Equal(new Verdict(VerdictLevel.Warning, "Stream to pp has trouble past the router"), e.Current.Verdict);
+    }
 }
