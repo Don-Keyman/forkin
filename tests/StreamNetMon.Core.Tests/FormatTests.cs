@@ -61,6 +61,6 @@ public class FormatTests
     public void Stream_line_shows_what_the_client_is_getting()
     {
         var info = new StreamInfo(398_988, 120, 3, 1, 2, "3840×2160 HEVC HDR");
-        Assert.Equal("3840×2160 HEVC HDR · 120 fps · 399.0 Mbps", Format.Stream(info));
+        Assert.Equal("3840×2160 HEVC HDR · 120 fps · encoder set to 399.0 Mbps", Format.Stream(info));
     }
 }

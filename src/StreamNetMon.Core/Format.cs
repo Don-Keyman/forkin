@@ -45,13 +45,13 @@ public static class Format
         return parts.Count == 0 ? "" : "Host: " + string.Join(" · ", parts);
     }
 
-    /// <summary>One stream in a line, e.g. "3840×2160 HEVC HDR · 120 fps · 399.0 Mbps".</summary>
+    /// <summary>One stream in a line, e.g. "3840×2160 HEVC HDR · 120 fps · encoder set to 399.0 Mbps".</summary>
     public static string Stream(StreamInfo s)
     {
         var parts = new List<string>();
         if (s.Format.Length > 0) parts.Add(s.Format);
         if (s.Fps > 0) parts.Add(s.Fps.ToString("0.#", Inv) + " fps");
-        if (s.BitrateKbps > 0) parts.Add(Rate(s.BitrateKbps * 1000));
+        if (s.BitrateKbps > 0) parts.Add("encoder set to " + Rate(s.BitrateKbps * 1000));
         return string.Join(" · ", parts);
     }
 }
