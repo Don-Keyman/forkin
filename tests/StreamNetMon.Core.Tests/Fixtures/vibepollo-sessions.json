@@ -1,0 +1,6 @@
+{
+  "sessions": [
+    { "id": 1, "client_name": "iPad", "address": "192.168.1.40:51234", "started_at": "2026-11-14T11:30:00Z", "codec": "hevc" },
+    { "id": 2, "client": { "name": "Shield" }, "peer": "[fe80::1]:40000", "start_time": 1794655800 }
+  ]
+}
