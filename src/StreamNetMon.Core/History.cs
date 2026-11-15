@@ -105,6 +105,9 @@ public sealed class HistoryStore : IDisposable
         }
     }
 
+    public void SetSessionAddress(long id, string address) =>
+        Execute("UPDATE session SET address=$a WHERE id=$id", ("$a", address), ("$id", id));
+
     public void CloseSession(long id, DateTimeOffset end) =>
         Execute("UPDATE session SET end=$e WHERE id=$id", ("$e", Ms(end)), ("$id", id));
 

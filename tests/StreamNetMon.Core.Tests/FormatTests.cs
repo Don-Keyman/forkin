@@ -40,4 +40,27 @@ public class FormatTests
         }
         finally { System.Globalization.CultureInfo.CurrentCulture = before; }
     }
+
+    [Fact]
+    public void HostStats_shows_the_known_figures_rounded()
+    {
+        var stats = new Dictionary<string, string>
+        {
+            ["cpu_percent"] = "3.0421981811523438", ["gpu_percent"] = "1.6782431602478027",
+            ["gpu_encoder_percent"] = "36.65629196166992", ["gpu_temp_c"] = "47.099998474121094",
+            ["ram_percent"] = "26.224252830266245", ["net_tx_bps"] = "2201199.5878992225",
+        };
+        Assert.Equal("Host: CPU 3% · GPU 2% · encoder 37% · GPU 47 °C · RAM 26%", Format.HostStats(stats));
+    }
+
+    [Fact]
+    public void HostStats_with_nothing_known_is_empty() =>
+        Assert.Equal("", Format.HostStats(new Dictionary<string, string> { ["other"] = "1", ["cpu_percent"] = "n/a" }));
+
+    [Fact]
+    public void Stream_line_shows_what_the_client_is_getting()
+    {
+        var info = new StreamInfo(398_988, 120, 3, 1, 2, "3840×2160 HEVC HDR");
+        Assert.Equal("3840×2160 HEVC HDR · 120 fps · 399.0 Mbps", Format.Stream(info));
+    }
 }

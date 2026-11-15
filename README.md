@@ -46,7 +46,7 @@ The app looks for the streaming server's web interface on
 
 | Server | What the app gets |
 |---|---|
-| Vibepollo / Apollo | who is streaming right now (shown automatically as a device), host statistics, session start and end |
+| Vibepollo / Apollo | who is streaming right now, each stream's resolution, frame rate, bitrate, client-reported losses and frame recoveries, host statistics, session start and end |
 | Sunshine | that it is running; paired device names where the server gives them |
 | none | nothing; saved devices only |
 
@@ -54,8 +54,15 @@ Detection is automatic; **Settings → Streaming server** can force a mode or
 change the port. Network measurement never depends on the server: if it is
 stopped, replaced or answers something unexpected, monitoring carries on.
 
-For live sessions on Vibepollo/Apollo, create a read-only access token in the
-server's web page and paste it into **Settings → Access token**. It is stored
+Vibepollo reports the streaming client by its paired name, not its network
+address. To tie a stream to a row, give the saved device the same name as the
+paired client, optionally followed by a label: for a client paired as `pp`, save
+`pp wired` and `pp Wi-Fi`. The one that is online while `pp` streams is marked
+with ▶, and the session is recorded against it in History.
+
+For live sessions on Vibepollo/Apollo, create an access token in the
+server's web page with GET access to `/api/session/status`, `/api/rtsp/sessions`,
+`/api/clients/list` and `/api/host/stats`, and paste it into **Settings → Access token**. It is stored
 encrypted for your Windows account (DPAPI) and only ever sent to this PC's own
 streaming server. The app only reads; it never changes the server.
 

@@ -295,4 +295,41 @@ public sealed class MonitorEngineTests : IDisposable
         }
         Assert.Single(_history.QuerySessions(start.AddHours(-1), start.AddHours(1)));
     }
+
+    [Fact]
+    public async Task Session_without_address_picks_the_saved_variant_that_is_online()
+    {
+        var wired = Saved("pp wired", "10.0.0.1");
+        var wifi = Saved("pp Wi-Fi", "10.0.0.2", ConnectionType.WiFi);
+        Saved("Apple TV", "10.0.0.3");
+        _pinger.Hosts["10.0.0.2"] = () => 3.0;
+        _pinger.Hosts["10.0.0.3"] = () => 1.0;
+        var e = Engine();
+        var start = _clock.Now;
+        _server.Streaming(Session("pp", null));
+        await Ticks(e, 4);
+        Assert.Equal([wifi.Id], e.Current.StreamingIds);
+        Assert.Equal("10.0.0.2", Assert.Single(_history.QuerySessions(start.AddHours(-1), start.AddHours(1))).Address);
+        Assert.DoesNotContain(wired.Id, e.Current.StreamingIds);
+    }
+
+    [Fact]
+    public async Task Session_device_added_by_address_counts_as_streaming()
+    {
+        var e = Engine();
+        _server.Streaming(Session("iPad", "192.168.1.40"));
+        await Ticks(e, 1);
+        Assert.Equal(e.Current.SessionDeviceIds, e.Current.StreamingIds);
+    }
+
+    [Fact]
+    public async Task Nothing_is_marked_streaming_when_no_saved_name_matches()
+    {
+        Saved("Apple TV", "10.0.0.3");
+        _pinger.Hosts["10.0.0.3"] = () => 1.0;
+        var e = Engine();
+        _server.Streaming(Session("pp", null));
+        await Ticks(e, 3);
+        Assert.Empty(e.Current.StreamingIds);
+    }
 }

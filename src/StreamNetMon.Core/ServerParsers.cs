@@ -60,11 +60,12 @@ internal static class JsonWalk
 
 public static class VibepolloParser
 {
-    private static readonly string[] NameKeys = ["name", "client_name", "device_name"];
+    private static readonly string[] NameKeys = ["device_name", "client_name", "name"];
     private static readonly string[] AddressKeys = ["address", "ip", "client_ip", "remote_address", "peer"];
     private static readonly string[] StartKeys = ["started_at", "start_time"];
 
-    public static IReadOnlyList<StreamSession> Sessions(string json)
+    /// <param name="now">Used to turn a reported uptime into a start time; leave default to skip that.</param>
+    public static IReadOnlyList<StreamSession> Sessions(string json, DateTimeOffset now = default)
     {
         using var doc = JsonWalk.TryParse(json);
         if (doc is null) return [];
@@ -72,9 +73,32 @@ public static class VibepolloParser
             .Select(o => new StreamSession(
                 Text(JsonWalk.Find(o, NameKeys)) ?? "Unknown device",
                 Address(Text(JsonWalk.Find(o, AddressKeys))),
-                Time(JsonWalk.Find(o, StartKeys))))
+                Time(JsonWalk.Find(o, StartKeys)) ?? FromUptime(o, now),
+                Stream(o)))
             .ToList();
     }
+
+    private static DateTimeOffset? FromUptime(JsonElement o, DateTimeOffset now) =>
+        now != default && Number(o, "uptime_seconds") is { } uptime and >= 0 ? now.AddSeconds(-Math.Round(uptime)) : null;
+
+    private static StreamInfo? Stream(JsonElement o)
+    {
+        var bitrate = Number(o, "encoder_bitrate_kbps");
+        var fps = Number(o, "fps");
+        if (bitrate is null && fps is null) return null;
+
+        var format = "";
+        if (Number(o, "width") is { } w && Number(o, "height") is { } h) format = $"{w:0}×{h:0}";
+        if (o.TryGetProperty("codec", out var codec) && codec.ValueKind == JsonValueKind.String) format = $"{format} {codec.GetString()}".Trim();
+        if (o.TryGetProperty("hdr", out var hdr) && hdr.ValueKind == JsonValueKind.True) format += " HDR";
+
+        return new StreamInfo(bitrate ?? 0, fps ?? 0,
+            (long)(Number(o, "client_reported_losses") ?? 0), (long)(Number(o, "idr_requests") ?? 0),
+            (long)(Number(o, "invalidate_ref_count") ?? 0), format);
+    }
+
+    private static double? Number(JsonElement o, string key) =>
+        o.ValueKind == JsonValueKind.Object && o.TryGetProperty(key, out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetDouble(out var n) ? n : null;
 
     public static IReadOnlyList<string> PairedNames(string json) => SunshineParser.PairedNames(json);
 

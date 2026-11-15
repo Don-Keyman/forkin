@@ -30,7 +30,7 @@ public sealed class LiveViewModel : Observable
     private static readonly TimeSpan ChartSpan = TimeSpan.FromMinutes(10);
 
     private readonly Queue<ChartPoint> _throughput = new();
-    private string _verdict = "Starting…", _server = "", _sendRate = "", _adapter = "", _hostStats = "";
+    private string _verdict = "Starting…", _server = "", _sendRate = "", _adapter = "", _hostStats = "", _streams = "";
     private Brush _verdictBrush = Palette.Idle;
     private IReadOnlyList<ChartSeries> _series = [];
     private DateTimeOffset _from, _to;
@@ -42,6 +42,7 @@ public sealed class LiveViewModel : Observable
     public string SendRate { get => _sendRate; private set => Set(ref _sendRate, value); }
     public string Adapter { get => _adapter; private set => Set(ref _adapter, value); }
     public string HostStats { get => _hostStats; private set => Set(ref _hostStats, value); }
+    public string Streams { get => _streams; private set => Set(ref _streams, value); }
     public IReadOnlyList<ChartSeries> Series { get => _series; private set => Set(ref _series, value); }
     public DateTimeOffset From { get => _from; private set => Set(ref _from, value); }
     public DateTimeOffset To { get => _to; private set => Set(ref _to, value); }
@@ -65,7 +66,10 @@ public sealed class LiveViewModel : Observable
               + (a.LinkSpeedBps < a.UsualLinkSpeedBps ? $" (usually {Format.LinkSpeed(a.UsualLinkSpeedBps)})" : "")
               + $" · send errors {a.OutErrorsDelta} · discards {a.OutDiscardsDelta}"
             : "Desktop: no active network adapter";
-        HostStats = string.Join("   ", s.Server.HostStats.Take(8).Select(kv => $"{kv.Key}: {kv.Value}"));
+        HostStats = Format.HostStats(s.Server.HostStats);
+        Streams = string.Join("\n", s.Server.Sessions.Where(x => x.Stream is not null).Select(x =>
+            $"▶ {x.ClientName}: {Format.Stream(x.Stream!)} · client-reported losses {x.Stream!.ClientReportedLosses}"
+            + $" · frame recoveries {x.Stream.InvalidatedFrames + x.Stream.IdrRequests}"));
 
         for (var i = Targets.Count - 1; i >= 0; i--)
             if (s.Targets.All(t => t.Device.Id != Targets[i].Id)) Targets.RemoveAt(i);
@@ -87,6 +91,7 @@ public sealed class LiveViewModel : Observable
             var wifi = t.Device.Type == ConnectionType.WiFi;
             row.Name = t.Device.Name;
             row.Type = t.Device.Role == TargetRole.StreamingDevice ? (wifi ? "Wi-Fi" : "wired") : "router";
+            if (s.StreamingIds.Contains(t.Device.Id)) row.Type += " ▶";
             row.Offline = t.Stats.Offline;
             row.IsSession = s.SessionDeviceIds.Contains(t.Device.Id);
             row.Latency = t.Stats.Offline ? "offline" : Format.Ms(t.Stats.LatencyMs);

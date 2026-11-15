@@ -261,4 +261,33 @@ public class StreamServerLinkTests
         Assert.Equal("7", s.HostStats["cpu"]);
         Assert.Equal("This access token does not allow live sessions", s.Note);
     }
+
+    // --- responses recorded from a real Vibepollo install (names and ids anonymised) ---
+
+    [Fact]
+    public async Task Real_vibepollo_session_has_name_stream_figures_and_a_start_derived_from_uptime()
+    {
+        _http.Json(Status, "{\"activeSessions\":1,\"status\":true}", 200)
+             .Json(Sessions, Fixture("vibepollo-rtsp-sessions.real.json"))
+             .Json(Clients, Fixture("vibepollo-clients.real.json"))
+             .Json(Stats, Fixture("vibepollo-host-stats.real.json"));
+        var s = await Link().PollAsync(default);
+        var session = Assert.Single(s.Sessions);
+        Assert.Equal("Tablet", session.ClientName);
+        Assert.Null(session.Address);
+        Assert.Equal(_clock.Now.AddSeconds(-65), session.StartedAt);
+        Assert.Equal(["Tablet", "Phone"], s.PairedNames);
+
+        var stream = session.Stream!;
+        Assert.Equal(398_988, stream.BitrateKbps);
+        Assert.Equal(120, stream.Fps);
+        Assert.Equal(0, stream.ClientReportedLosses);
+        Assert.Equal(0, stream.IdrRequests);
+        Assert.Equal(2, stream.InvalidatedFrames);
+        Assert.Equal("3840×2160 HEVC HDR", stream.Format);
+    }
+
+    [Fact]
+    public void Session_without_stream_figures_has_no_stream_info() =>
+        Assert.Null(Assert.Single(VibepolloParser.Sessions("[{\"name\":\"x\"}]", default)).Stream);
 }

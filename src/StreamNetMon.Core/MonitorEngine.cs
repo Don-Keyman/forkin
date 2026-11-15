@@ -4,10 +4,11 @@ using System.Text;
 namespace StreamNetMon.Core;
 
 public sealed record Snapshot(DateTimeOffset At, Verdict Verdict, AdapterStats? Adapter,
-    IReadOnlyList<TargetState> Targets, ServerStatus Server, IReadOnlySet<Guid> SessionDeviceIds)
+    IReadOnlyList<TargetState> Targets, ServerStatus Server, IReadOnlySet<Guid> SessionDeviceIds,
+    IReadOnlySet<Guid> StreamingIds)
 {
     public static Snapshot Empty { get; } =
-        new(DateTimeOffset.MinValue, Verdict.AllClear, null, [], ServerStatus.Absent, new HashSet<Guid>());
+        new(DateTimeOffset.MinValue, Verdict.AllClear, null, [], ServerStatus.Absent, new HashSet<Guid>(), new HashSet<Guid>());
 }
 
 /// <summary>Does one second's work per tick: probe, read the adapter, follow sessions, judge, record.</summary>
@@ -35,6 +36,7 @@ public sealed class MonitorEngine
     private readonly Dictionary<Guid, Device> _sessionDevices = new();
     private readonly Dictionary<(string Name, string? Address), long> _openSessions = new();
 
+    private readonly HashSet<long> _sessionAddressKnown = new();
     private ServerStatus _serverStatus = ServerStatus.Absent;
     private Task<ServerStatus>? _poll;
     private DateTimeOffset? _polledAt;
@@ -91,7 +93,8 @@ public sealed class MonitorEngine
                     .ToList();
                 var verdict = VerdictEngine.Evaluate(adapter, states, _settings.Thresholds);
                 Record(now, states, adapter);
-                snapshot = new Snapshot(now, verdict, adapter, states, _serverStatus, _sessionDevices.Keys.ToHashSet());
+                snapshot = new Snapshot(now, verdict, adapter, states, _serverStatus, _sessionDevices.Keys.ToHashSet(),
+                    FindStreaming(states));
             }
 
             Current = snapshot;
@@ -171,8 +174,7 @@ public sealed class MonitorEngine
 
         foreach (var started in live.Where(s => !_openSessions.ContainsKey(Key(s))))
         {
-            var address = started.Address ?? SavedByName(started.ClientName)?.Host;
-            _openSessions[Key(started)] = _history.OpenSession(started.ClientName, address, started.StartedAt ?? now);
+            _openSessions[Key(started)] = _history.OpenSession(started.ClientName, started.Address, started.StartedAt ?? now);
         }
 
         // Session devices: one per live address that no saved device already covers.
@@ -193,8 +195,41 @@ public sealed class MonitorEngine
     private Device? SavedByHost(string host) =>
         _settings.Devices.FirstOrDefault(d => string.Equals(d.Host, host, StringComparison.OrdinalIgnoreCase));
 
-    private Device? SavedByName(string name) =>
-        _settings.Devices.FirstOrDefault(d => string.Equals(d.Name, name, StringComparison.OrdinalIgnoreCase));
+    /// <summary>
+    /// Which targets the live sessions are going to. A session with an address is matched by it.
+    /// Without one (Vibepollo reports only the client's name) it is matched to the saved device
+    /// of that name; when several share it ("pp wired", "pp Wi-Fi"), to the one that is online.
+    /// </summary>
+    private HashSet<Guid> FindStreaming(List<TargetState> states)
+    {
+        var streaming = new HashSet<Guid>(_sessionDevices.Keys);
+        foreach (var (key, sessionId) in _openSessions)
+        {
+            Device? device;
+            if (key.Address is { } address)
+            {
+                device = SavedByHost(address);
+            }
+            else
+            {
+                var named = _settings.Devices.Where(d => NamedFor(d.Name, key.Name)).ToList();
+                device = named.Count == 1
+                    ? named[0]
+                    : named.FirstOrDefault(d => states.Any(s => s.Device.Id == d.Id && !s.Stats.Offline));
+                if (device is not null && _sessionAddressKnown.Add(sessionId))
+                    _history.SetSessionAddress(sessionId, device.Host);
+            }
+            if (device is not null) streaming.Add(device.Id);
+        }
+        return streaming;
+    }
+
+    /// <summary>"pp", "pp wired" and "pp-wifi" are all devices for the client named "pp"; "Apple TV" is not.</summary>
+    private static bool NamedFor(string deviceName, string clientName)
+    {
+        if (!deviceName.StartsWith(clientName, StringComparison.OrdinalIgnoreCase)) return false;
+        return deviceName.Length == clientName.Length || " -_(".Contains(deviceName[clientName.Length]);
+    }
 
     /// <summary>The same address always gets the same id, so its history lines up across sessions.</summary>
     private static Guid SessionDeviceId(string address) =>

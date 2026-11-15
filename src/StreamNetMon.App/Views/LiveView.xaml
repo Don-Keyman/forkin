@@ -39,6 +39,7 @@
             <Grid.RowDefinitions>
                 <RowDefinition />
                 <RowDefinition />
+                <RowDefinition />
             </Grid.RowDefinitions>
             <StackPanel Orientation="Horizontal">
                 <Ellipse Width="14" Height="14" Fill="{Binding VerdictBrush}" VerticalAlignment="Center" Margin="0,0,8,0" />
@@ -46,6 +47,17 @@
             </StackPanel>
             <TextBlock Grid.Column="1" Text="{Binding SendRate}" FontSize="16" FontFamily="Consolas" VerticalAlignment="Center" />
             <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding Server}" Foreground="#5F666D" Margin="22,2,0,0" TextTrimming="CharacterEllipsis" />
+            <TextBlock Grid.Row="2" Grid.ColumnSpan="2" Text="{Binding Streams}" Margin="22,4,0,0" TextTrimming="CharacterEllipsis">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Streams}" Value="">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
         </Grid>
 
         <Grid Grid.Row="1">

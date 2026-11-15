@@ -5,7 +5,11 @@ namespace StreamNetMon.Core;
 
 public enum ServerKind { None, Sunshine, Vibepollo }
 
-public sealed record StreamSession(string ClientName, string? Address, DateTimeOffset? StartedAt);
+/// <summary>What the server says about one running stream. Counters are totals since the stream began.</summary>
+public sealed record StreamInfo(double BitrateKbps, double Fps, long ClientReportedLosses, long IdrRequests,
+    long InvalidatedFrames, string Format);
+
+public sealed record StreamSession(string ClientName, string? Address, DateTimeOffset? StartedAt, StreamInfo? Stream = null);
 
 public sealed record ServerStatus(ServerKind Kind, bool Running, IReadOnlyList<StreamSession> Sessions,
     IReadOnlyList<string> PairedNames, string? Note, IReadOnlyDictionary<string, string> HostStats)
@@ -128,7 +132,7 @@ public sealed class StreamServerLink : IStreamServer
                 break;
             case Outcome.Ok when JsonWalk.TryParse(sessions.Body) is { } doc:
                 doc.Dispose();
-                status = status with { Sessions = VibepolloParser.Sessions(sessions.Body) };
+                status = status with { Sessions = VibepolloParser.Sessions(sessions.Body, _clock.Now) };
                 break;
             default:
                 return status with { Note = UnavailableNote };
